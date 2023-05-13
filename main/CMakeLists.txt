@@ -1,0 +1,17 @@
+idf_component_register(SRCS 
+"main.c"
+"adc_dac.c"
+"usart_485.c"
+"canbus.c"
+"lcd_ui.c"
+"micro_sd.c"
+"wifinet.c"
+"switch_fun.c"
+"key.c"
+"st7789.c"
+"temp.c"
+"calibration.c"
+"QR_Encode.c"
+"PCF8563.c"
+"ota.c"
+INCLUDE_DIRS "")
