@@ -473,7 +473,7 @@ void vol_frame_init(uint8_t select)
 }
 
 
-
+/// 万用表菜单刷新
 void vol_menu_refresh()
 {
     int i=0;
@@ -6289,8 +6289,8 @@ void lcd_ui_task(void *arg)
            /*创建定时器*/       
     esp_timer_create(&esp_timer_create_args_t2, &esp_timer_handle_t2);
     esp_timer_create(&esp_timer_create_args_screenoff, &esp_timer_handle_screenoff);
-
-    esp_timer_start_periodic(esp_timer_handle_screenoff, 10000 * 1000);
+    /// 启动定时器，1min不使用自动休眠，这里做了更改，改为1min
+    esp_timer_start_periodic(esp_timer_handle_screenoff, 60000 * 1000);
 
 
    spi_master_init(&dev, CONFIG_MOSI_GPIO, CONFIG_SCLK_GPIO, CONFIG_CS_GPIO, CONFIG_DC_GPIO);

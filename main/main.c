@@ -45,7 +45,7 @@ typedef union {
 
 
 ////////////////// pwm //////////////////////////
-
+// 使用PWM控制LED。。。
 
 ledc_channel_config_t  ledc_channel1= {
         .channel    = LEDC_CHANNEL_1,
@@ -176,7 +176,7 @@ void gpio_init(void)
 }
 
 
-
+// 里面什么也没有写，但是可以用来测试
 void other_task(void *arg)
 {
 
@@ -206,6 +206,9 @@ void other_task(void *arg)
 
    }
 }
+
+
+////////////////////////////读写配置文件////////////////////////////
 
 uint8_t Already_saved=0x34;
 
@@ -491,16 +494,18 @@ void app_main(void)
     //pwm_ledc_init();
     usart0_init();
     
+    // 检查NVS是否初始化成功，如果不成功就检查是不是没有多余空间了或者是不是找到了新版本，如果是，擦除NVS重新初始化
       esp_err_t ret = nvs_flash_init();
 	if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
 		ESP_ERROR_CHECK(nvs_flash_erase());
 		ret = nvs_flash_init();
 	}
 	ESP_ERROR_CHECK(ret);
-    read_config_in_nvs();//读取配置
+    read_config_in_nvs();//读取配置，目前不需要
     
     
     // 从上往下，优先级由低至高
+    // xTaskCreate(进程函数指针, 别名, 分配堆栈大小, NULL, 优先级, NULL);
     xTaskCreate(key_task, "KEY", 1024*8, NULL, 2, NULL);
     xTaskCreate(adc_task, "ADC", 1024*4, NULL, 3, NULL);
     
@@ -513,6 +518,7 @@ void app_main(void)
     xTaskCreate(other_task, "other", 1024*2, NULL, 15, NULL);
     xTaskCreate(usart0_task, "usart0", 1024*4, NULL, 16, NULL);
 
+    // 相对延时函数，执行后延时使得其他进程得以运行
     vTaskDelay(pdMS_TO_TICKS(5000));
 
     uint32_t strapping = (*((volatile uint32_t *)(GPIO_STRAP_REG)));

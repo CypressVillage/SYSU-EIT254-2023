@@ -68,6 +68,7 @@ void I2C_Init()
    }
 }
 
+// AW9523:GPIO扩展芯片
 void AW9523_Init()
 {
    i2c_cmd_handle_t cmd = i2c_cmd_link_create();

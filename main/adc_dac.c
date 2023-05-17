@@ -25,7 +25,7 @@ uint8_t electricity_st = 100; //电池电量：0为电量低，255为正常，25
 uint8_t lsdata[3]={0,0,0};
 uint8_t lsdata2[1]={0};
 
-uint8_t no_need_up=0;
+uint8_t no_need_up=0;   // 0 需要上传  1 不需要上传，这样看来是不是强制设置为1就可以了，不可以。。。
 
 uint8_t de_dcout=0; //标定直流源
 uint16_t Slope_dcvout=10000;//直流电压源斜率校准数值
@@ -137,7 +137,7 @@ void spi_adc_init(uint8_t velocity)
 uint16_t signal_V=50; //0-100  10V
 uint16_t signal_A=100;//0-300  30mA
 
-
+/// DAC
 void GP8403_init()
 {
    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
@@ -1675,21 +1675,26 @@ void adc_task(void *arg)
    int s_add=1;
    int s_add_c=2;
 
-   uint8_t fun_old=FUN_NULL;
+   uint8_t fun_old=FUN_NULL; // 上一次的功能设置为无
+   // 在ADC上设置特定通道的衰减，并配置其关联的GPIO引脚复用器
+   // 这里的意思呢，就是什么也没干
    adc2_config_channel_atten( ADC2_CHANNEL_7, ADC_ATTEN_0db );
 	vTaskDelay(pdMS_TO_TICKS(100));
    spi_adc_init(0);
 
-
-       //定时器结构体初始化
-    esp_timer_create_args_t esp_timer_create_args_txdata = {
-        .callback = &esp_timer_txdata_cb, //定时器回调函数
-        .arg = NULL, //传递给回调函数的参数
-        .name = "esp_timer_txdata" //定时器名称
-    };
-   /*创建定时器*/       
-    esp_err_t err = esp_timer_create(&esp_timer_create_args_txdata, &esp_timer_handle_txdata);
-    err = esp_timer_start_periodic(esp_timer_handle_txdata, current_freq * 100* 1000);
+   /*
+      这一段是初始化了一个定时器，用来定时向网络发送测量值
+      中断函数的定义并没有删除（1642行），但是我把初始化注释掉了应该就没有问题了
+   */
+   //     //定时器结构体初始化
+   //  esp_timer_create_args_t esp_timer_create_args_txdata = {
+   //      .callback = &esp_timer_txdata_cb, //定时器回调函数
+   //      .arg = NULL, //传递给回调函数的参数
+   //      .name = "esp_timer_txdata" //定时器名称
+   //  };
+   // /*创建定时器*/       
+   //  esp_err_t err = esp_timer_create(&esp_timer_create_args_txdata, &esp_timer_handle_txdata);
+   //  err = esp_timer_start_periodic(esp_timer_handle_txdata, current_freq * 100* 1000);
 
    // ESP_LOGI(ADC_TASK_TAG, "----ADC_TASK_TAG----"); 
    // vTaskDelay(pdMS_TO_TICKS(100));
@@ -1705,6 +1710,7 @@ void adc_task(void *arg)
     
    while (1) {
 
+      // 如果是通断档，就设置两个阈值
      if(current_fun==FUN_BEEP)
      {
          vTaskDelay(pdMS_TO_TICKS(20));
@@ -1723,16 +1729,18 @@ void adc_task(void *arg)
      //write_ad7791(0x3c);/*将7791设置成连续读*/
      //write_ad7791(0x38);
 
+      // 当测量没有停止时，就一直等待；measure_stop=0表示测量停止，出自lcd_ui.h
      while(measure_stop!=0)
      {
         vTaskDelay(pdMS_TO_TICKS(100));
      }
      
+       // 电源管理部分，读取电池电压
       if(++b_add>b_add_c)
       {
          b_add=0;
          esp_err_t r=-1;
-         r = adc2_get_raw( ADC2_CHANNEL_7, ADC_WIDTH_12Bit, &val);
+         r = adc2_get_raw( ADC2_CHANNEL_7, ADC_WIDTH_12Bit, &val); // ADC2获取原始数据，r为返回状态
          //ESP_LOGI(ADC_TASK_TAG, "ADC = %d", val);
          if ( r == ESP_OK ) {
             batt_v = (1000.0/4095.0)*val/0.234;
@@ -1743,7 +1751,7 @@ void adc_task(void *arg)
             }
             else
             {
-               if(batt_v<3200)
+               if(batt_v<3200) // 电量过低关机
                {
                   if(on_off_sound!=0)//关机提示音
                   {
@@ -1761,6 +1769,7 @@ void adc_task(void *arg)
                }
                if(electricity_st==254)
                {
+                  // 电池电量只会显示几个固定值
                   if(batt_v<3300)
                   {
                      electricity_st=1;
@@ -1886,6 +1895,7 @@ void adc_task(void *arg)
          }
       }
 
+      // 储存上一次的功能，如果是通断档（下一次就不是通断档了），ADC置1
       if(fun_old!=current_fun)
       {
          fun_old=current_fun;
@@ -1899,7 +1909,7 @@ void adc_task(void *arg)
          }
       }
       
-      
+      // 喂喂喂，这里才是主函数啊啊啊
       no_need_up=0;
       switch (current_fun)
       {
@@ -1963,7 +1973,7 @@ void adc_task(void *arg)
          
          //voltage=((float)(10-1))/(0.04945-0.00909)*(voltage-0.00909)+1;
          //voltage-=0.0039;
-
+         // 这里再次上传数据，可是数据是同步发送到网络和本地的
          if((no_need_up==0)&((measure_stop==0)))
          {
             if(++s_add>s_add_c)

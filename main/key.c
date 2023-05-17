@@ -4,8 +4,11 @@
 
 const char *KEY = "KEY";
 
-xQueueHandle key_evt_queue; 
+xQueueHandle key_evt_queue; // FreeRTOS里的一个消息队列，这里用来接收按键的按动情况
 
+// 旋转编码器的控制，定义了两个静态变量Left和Right，
+// 检测到按键左右旋转后就会将按键消息送入消息队列执行中断
+// 旋转编码器的中断和按键的中断不是一个中断
 static void IRAM_ATTR rotary_isr_handler(void* arg)
 {
     static uint8_t Left,Right;  //左 右旋转方向静态变量
@@ -66,6 +69,8 @@ uint8_t screen_status()
    return 1;
 }
 
+
+// 读取其他按键的状态，复杂一点的送入消息队列，简单一点的当场处理（音量大小）
 uint8_t K1Set,K1Cnt,K2Set,K2Cnt,K3Set,K3Cnt,K4Set,K4Cnt;
 void KeyScan()
 {	
@@ -238,13 +243,15 @@ uint8_t beep_add=0;
 uint8_t beep_k=0;
 uint8_t beep_d=0;
 
+// 蜂鸣器响一会
 void beep_start(uint8_t duration)
 {
-   beep_d=duration;
+   beep_d=duration; // 蜂鸣器持续时间
    beep_add=0;
    beep_k=1;
 }
 
+// 根据beep_k和beep_add的状态决定蜂鸣器的状态
 void Beep_drive()
 {
    if(beep_k==1)
@@ -272,22 +279,22 @@ void esp_timer_cb(void *arg){
 
 void key_task(void *arg)
 {
-   uint8_t key_add = 0;
+   uint8_t key_add = 0;// 管理长按短按的
    uint8_t evt;
-   key_evt_queue = xQueueCreate(5, sizeof(uint8_t));
+   key_evt_queue = xQueueCreate(5, sizeof(uint8_t)); // 创建按键消息队列
    gpio_exti_init();
 
    
    
-   while(1)//短按开机
+   while(1)//短按开机 ？？？ 我觉得是长按跳出循环开机
    {
       vTaskDelay(pdMS_TO_TICKS(90));
       if(++key_add > 9) break; //长按 开机
-      if((gpio_get_level(PWR_KEY)!=0)) key_add = 0;
+      if((gpio_get_level(PWR_KEY)!=0)) key_add = 0; //可以看出这个按键是低电平有效，按下为0
    }
    if(on_off_sound!=0)//开机提示音
    {
-      gpio_set_level(BEEP, 1);
+      gpio_set_level(BEEP, 1); // 可以看出执行后蜂鸣器会一直叫
       vTaskDelay(pdMS_TO_TICKS(200));
       gpio_set_level(BEEP, 0);
    }
@@ -310,6 +317,7 @@ void key_task(void *arg)
       }
    }
 		
+      // 这里是开机的时候长按会进入出厂设置
 	 key_add = 0;
     while((gpio_get_level(PWR_KEY)==0))
     {
