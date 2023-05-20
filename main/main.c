@@ -494,7 +494,7 @@ void app_main(void)
     //pwm_ledc_init();
     usart0_init();
     
-    // 检查NVS是否初始化成功，如果不成功就检查是不是没有多余空间了或者是不是找到了新版本，如果是，擦除NVS重新初始化
+    /// 检查NVS是否初始化成功，如果不成功就检查是不是没有多余空间了或者是不是找到了新版本，如果是，擦除NVS重新初始化
       esp_err_t ret = nvs_flash_init();
 	if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
 		ESP_ERROR_CHECK(nvs_flash_erase());

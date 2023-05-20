@@ -315,7 +315,7 @@ uint8_t ch=0;
 char ls_wifi_ssid[32];
 char ls_wifi_pass[32];
 
-
+/// 定时器回调函数 
 void config_router_timer_cb(void *arg) 
 {
     uint8_t evt;
@@ -1264,7 +1264,7 @@ void wifinet_task(void *arg)
     uint8_t tx_buf[128];
     uint8_t sn_count=0;
     uint8_t fun=0;
-    wifinet_evt_queue = xQueueCreate(3, sizeof(uint8_t));
+    wifinet_evt_queue = xQueueCreate(3, sizeof(uint8_t)); // wifi网络事件队列
     //vTaskDelay(pdMS_TO_TICKS(1000));
     //initialise_wifi();                   // 初始化WiFi为sta模式，等待APP进行配网
     app_wifi_initialise();
